@@ -1,5 +1,7 @@
 package models
 
+import "io/fs"
+
 type EnvironmentVariable struct {
 	Key         string            `yaml:"key"`
 	Source      string            `yaml:"source"`
@@ -9,8 +11,13 @@ type EnvironmentVariable struct {
 	Paths       []string          `yaml:"paths"`
 }
 
-type Models struct {
+type ConfigYaml struct {
 	Extends              map[string]string     `yaml:"extends"`
 	ProjectFolder        string                `yaml:"projectFolder"`
 	EnvironmentVariables []EnvironmentVariable `yaml:"environment_variables"`
+}
+
+type OsI interface {
+	Stat(path string) (fs.FileInfo, error)
+	IsNotExist(error error) bool
 }

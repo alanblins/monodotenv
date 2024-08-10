@@ -3,3 +3,21 @@ Generate .env files based on single source configuration file
 
 # run
 ./monodotenv use local -f
+
+# features
+extends workspaces
+fail when no workspace value found
+warning and fail if there is existing .env
+force option to overrite .env
+don't create folders, only .env
+add suffix: .env.production
+add encrypted gcm
+user file
+
+options
+value ok
+user file ok
+encrypted
+extends ok
+
+sanitize suffix and paths

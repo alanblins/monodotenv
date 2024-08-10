@@ -4,13 +4,13 @@ Copyright © 2024 Alan Lins <alanblins@gmail.com>
 package cmd
 
 import (
+	"io/fs"
 	"log"
 	"os"
 
 	"github.com/alanblins/monodotenv/models"
 	"github.com/alanblins/monodotenv/utils"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 var ForceFlag bool
@@ -19,6 +19,20 @@ func check(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+var DefaultConfigFile = "monodotenv.yaml"
+var DefaultUserFile = ".monodotenv.user.yaml"
+
+type RealMyOs struct {
+}
+
+func (myOs *RealMyOs) Stat(path string) (fs.FileInfo, error) {
+	return os.Stat(path)
+}
+
+func (myOs *RealMyOs) IsNotExist(error error) bool {
+	return os.IsNotExist(error)
 }
 
 // useCmd represents the use command
@@ -46,84 +60,49 @@ var useCmd = &cobra.Command{
 	monodotenv use local
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.CheckConfigFile()
-		workspace := args[0]
-
-		var model models.Models
+		var configYaml models.ConfigYaml
 		var userFile map[string]string
 
-		yamlFile, err := os.ReadFile("monodotenv.yaml")
-		yamlUserFile, errUserFile := os.ReadFile(".monodotenv.user.yaml")
+		utils.ReadYaml(DefaultConfigFile, &configYaml)
+		utils.ReadYaml(DefaultUserFile, &userFile)
 
-		if err != nil {
-			log.Fatalf("yamlFile.Get err #%v ", err)
-		}
-		err = yaml.Unmarshal(yamlFile, &model)
-		if err != nil {
-			log.Fatalf("Unmarshal: %v", err)
-		}
-
-		if errUserFile == nil {
-			errUserFile = yaml.Unmarshal(yamlUserFile, &userFile)
-			if errUserFile != nil {
-				log.Fatalf("Unmarshal: %v", err)
-			}
-		}
-
-		currentWorkspace := workspace
-
+		workspace := args[0]
 		outputEnvMap := make(map[string]string)
 
 		nonExistingPaths := map[string]bool{}
-		containsNotExistingPaths := false
-
 		envsExisting := map[string]bool{}
-		containsExistingEnvs := false
-		for _, element := range model.EnvironmentVariables {
+		for _, element := range configYaml.EnvironmentVariables {
 			for _, path := range element.Paths {
-				var exist, _ = utils.IsFileExist(path)
-				if !exist {
-					nonExistingPaths[path] = true
-					containsNotExistingPaths = true
-				}
 				envPath := path + "/.env"
-				var envExist, _ = utils.IsFileExist(envPath)
-				if envExist {
+
+				exist, err := utils.IsFileExist(path, &RealMyOs{})
+				if !exist || err != nil {
+					nonExistingPaths[path] = true
+				}
+				exist, err = utils.IsFileExist(envPath, &RealMyOs{})
+				if exist && err == nil {
 					envsExisting[envPath] = true
-					containsExistingEnvs = true
 				}
-
-				extendWorkspace := model.Extends[currentWorkspace]
-				extendValue := ""
-				if extendWorkspace != "" {
-					extendValue = element.Workspaces[extendWorkspace]
-				}
-
-				value, errorReadValue := utils.GetValue(element.Workspaces[currentWorkspace], element.Key, element.Source, userFile, extendValue)
-				if errorReadValue != nil {
-					log.Fatalln(errorReadValue)
-				}
-				content := outputEnvMap[path] + element.Key + "=" + value + "\n"
-				outputEnvMap[path] = content
+				utils.WriteContent(element, &configYaml, workspace, userFile, outputEnvMap, path)
 			}
 		}
 
-		if containsNotExistingPaths {
+		if len(nonExistingPaths) > 0 {
 			log.Println("The following paths don't exist: ")
 			for path := range nonExistingPaths {
 				log.Println(path)
 			}
 			log.Fatalln("Please create these folders.")
 		}
-		if !ForceFlag && containsExistingEnvs {
+		if !ForceFlag && len(envsExisting) > 0 {
 			log.Println("There are existing .env files on the following directories:")
 			for path := range envsExisting {
 				log.Println(path)
 			}
-			log.Fatalln("Delete them or you for force overwrite with option -f")
+			log.Fatalln("Delete them or you for force overwrite with option -f: mde use <workspace> -f")
 		}
 
-		if ForceFlag || !containsExistingEnvs {
+		if ForceFlag || len(envsExisting) == 0 {
 			for path, output := range outputEnvMap {
 				outputBytes := []byte(output)
 				err := os.WriteFile(path+"/.env", outputBytes, 0644)
