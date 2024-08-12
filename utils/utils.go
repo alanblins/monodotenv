@@ -4,7 +4,12 @@ Copyright © 2024 Alan Lins <alanblins@gmail.com>
 package utils
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"io"
 	"log"
 	"os"
 
@@ -26,7 +31,8 @@ func ValidateEnvironmanetVariable(environmentVariable models.EnvironmentVariable
 	return true, nil
 }
 
-func GetValue(environmentVariable models.EnvironmentVariable, userfile map[string]string, extendWorkspace string, workspace string) (string, error) {
+func GetValue(environmentVariable models.EnvironmentVariable, extendWorkspace string, workspace string, userfile map[string]string, secretsFile models.SecretsYaml) (string, error) {
+	workspaceFinal := workspace
 	value, workspaceExist := environmentVariable.Workspaces[workspace]
 	if !workspaceExist {
 		if extendWorkspace != "" {
@@ -34,6 +40,7 @@ func GetValue(environmentVariable models.EnvironmentVariable, userfile map[strin
 			if !workspaceExist {
 				return "", errors.New("not found value for the key: " + environmentVariable.Key + " and workspace: " + workspace)
 			}
+			workspaceFinal = extendWorkspace
 		} else {
 			return "", errors.New("not found value for the key: " + environmentVariable.Key + " and workspace: " + workspace)
 		}
@@ -53,26 +60,98 @@ func GetValue(environmentVariable models.EnvironmentVariable, userfile map[strin
 		}
 		return val, nil
 	}
+
+	if environmentVariable.Source == "aes-gcm" {
+		if secretsFile.Secrets == nil {
+			return "", errors.New("no .monodotenv.secrets.yaml file found")
+		}
+		keyHex := secretsFile.Secrets[workspaceFinal][environmentVariable.Key][0]
+		nounceHex := secretsFile.Secrets[workspaceFinal][environmentVariable.Key][1]
+		value = GCMDecrypter(keyHex, value, nounceHex)
+		if value == "" {
+			return "", errors.New(value + "not found in .monodotenv.user.yaml file.")
+		}
+		return value, nil
+	}
 	return "", errors.New("source unknown")
 }
 
-func ReadYaml[T models.ConfigYaml | map[string]string](filepath string, yamlDecoded *T) {
+func ReadYaml[T models.ConfigYaml | map[string]string | models.SecretsYaml](filepath string, yamlDecoded *T) error {
 	yamlFile, err := os.ReadFile(filepath)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		return err
 	}
 	err = yaml.Unmarshal(yamlFile, &yamlDecoded)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		return err
 	}
+	return nil
 }
 
-func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, workspace string, userFileYaml map[string]string, outputEnvMap map[string]string, path string) {
+func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, workspace string, outputEnvMap map[string]string, path string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) {
 	extendWorkspace := configYaml.Extends[workspace]
-	value, errorReadValue := GetValue(environmentVariable, userFileYaml, extendWorkspace, workspace)
+	value, errorReadValue := GetValue(environmentVariable, extendWorkspace, workspace, userFileYaml, secretsFileYaml)
 	if errorReadValue != nil {
 		log.Fatalln(errorReadValue)
 	}
 	content := outputEnvMap[path] + environmentVariable.Key + "=" + value + "\n"
 	outputEnvMap[path] = content
+}
+
+func GCMEncrypter(keyString string, textString string, nonceHex string) (string, string) {
+	// AES-128 or AES-256.
+	key := []byte(keyString)
+	plaintext := []byte(textString)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err.Error())
+	}
+	nonce := make([]byte, 12)
+	if nonceHex == "" {
+		if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+			panic(err.Error())
+		}
+		nonceHex = hex.EncodeToString(nonce)
+	} else {
+		nonce, err = hex.DecodeString(nonceHex)
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
+
+	cipherHex := hex.EncodeToString(ciphertext)
+	return cipherHex, nonceHex
+}
+
+func GCMDecrypter(keyString string, ciphertextHex string, nonceHex string) string {
+	// AES-128 or AES-256.
+	key := []byte(keyString)
+	ciphertext, _ := hex.DecodeString(ciphertextHex)
+
+	nonce, _ := hex.DecodeString(nonceHex)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	plaintext, err := aesgcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return string(plaintext)
 }

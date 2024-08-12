@@ -17,6 +17,13 @@ type ConfigYaml struct {
 	EnvironmentVariables []EnvironmentVariable `yaml:"environment_variables"`
 }
 
+type EnvironmentPass struct {
+}
+
+type SecretsYaml struct {
+	Secrets map[string]map[string][]string `yaml:"secrets"`
+}
+
 type OsI interface {
 	Stat(path string) (fs.FileInfo, error)
 	IsNotExist(error error) bool

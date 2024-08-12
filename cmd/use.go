@@ -23,6 +23,7 @@ func check(e error) {
 
 var DefaultConfigFile = "monodotenv.yaml"
 var DefaultUserFile = ".monodotenv.user.yaml"
+var DefaultSecretsFile = ".monodotenv.secrets.yaml"
 
 type RealMyOs struct {
 }
@@ -62,9 +63,14 @@ var useCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var configYaml models.ConfigYaml
 		var userFile map[string]string
+		var secretsFile models.SecretsYaml
 
-		utils.ReadYaml(DefaultConfigFile, &configYaml)
+		err := utils.ReadYaml(DefaultConfigFile, &configYaml)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
 		utils.ReadYaml(DefaultUserFile, &userFile)
+		utils.ReadYaml(DefaultSecretsFile, &secretsFile)
 
 		workspace := args[0]
 		outputEnvMap := make(map[string]string)
@@ -83,7 +89,7 @@ var useCmd = &cobra.Command{
 				if exist && err == nil {
 					envsExisting[envPath] = true
 				}
-				utils.WriteContent(element, &configYaml, workspace, userFile, outputEnvMap, path)
+				utils.WriteContent(element, &configYaml, workspace, outputEnvMap, path, userFile, secretsFile)
 			}
 		}
 
