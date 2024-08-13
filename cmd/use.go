@@ -14,6 +14,7 @@ import (
 )
 
 var ForceFlag bool
+var SuffixFlag string
 
 func check(e error) {
 	if e != nil {
@@ -111,7 +112,7 @@ var useCmd = &cobra.Command{
 		if ForceFlag || len(envsExisting) == 0 {
 			for path, output := range outputEnvMap {
 				outputBytes := []byte(output)
-				err := os.WriteFile(path+"/.env", outputBytes, 0644)
+				err := utils.WriteFile(path, outputBytes, SuffixFlag)
 				check(err)
 			}
 		}
@@ -126,6 +127,7 @@ func init() {
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	useCmd.PersistentFlags().BoolVarP(&ForceFlag, "force", "f", false, "overwrites existing .env files")
+	useCmd.PersistentFlags().StringVarP(&SuffixFlag, "suffix", "s", "", "suffix for .env files, ex: -s production will create .env.production")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:

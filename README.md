@@ -1,5 +1,5 @@
 # monodotenv
-Generate .env files based on single source configuration file
+Generate .env files based on single source configuration file in YAML
 
 # run
 ./monodotenv use local -f
@@ -17,7 +17,7 @@ user file
 options
 value ok
 user file ok
-encrypted
+encrypted ok
 extends ok
 
 sanitize suffix and paths

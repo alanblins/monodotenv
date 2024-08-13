@@ -12,13 +12,14 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 
 	"github.com/alanblins/monodotenv/models"
 	"gopkg.in/yaml.v3"
 )
 
-func IsFileExist(path string, myOs models.OsI) (bool, error) {
-	_, error := myOs.Stat(path)
+func IsFileExist(pathval string, myOs models.OsI) (bool, error) {
+	_, error := myOs.Stat(pathval)
 	if error == nil {
 		return true, nil
 	}
@@ -88,14 +89,23 @@ func ReadYaml[T models.ConfigYaml | map[string]string | models.SecretsYaml](file
 	return nil
 }
 
-func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, workspace string, outputEnvMap map[string]string, path string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) {
+func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, workspace string, outputEnvMap map[string]string, pathval string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) {
 	extendWorkspace := configYaml.Extends[workspace]
 	value, errorReadValue := GetValue(environmentVariable, extendWorkspace, workspace, userFileYaml, secretsFileYaml)
 	if errorReadValue != nil {
 		log.Fatalln(errorReadValue)
 	}
-	content := outputEnvMap[path] + environmentVariable.Key + "=" + value + "\n"
-	outputEnvMap[path] = content
+	content := outputEnvMap[pathval] + environmentVariable.Key + "=" + value + "\n"
+	outputEnvMap[pathval] = content
+}
+
+func WriteFile(pathval string, outputBytes []byte, suffix string) error {
+	envFile := ".env"
+	if suffix != "" {
+		envFile += "." + suffix
+	}
+	finalPath := path.Join(pathval, envFile)
+	return os.WriteFile(finalPath, outputBytes, 0644)
 }
 
 func GCMEncrypter(keyString string, textString string, nonceHex string) (string, string) {
