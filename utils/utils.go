@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -45,6 +46,10 @@ func GetValue(environmentVariable models.EnvironmentVariable, extendWorkspace st
 		} else {
 			return "", errors.New("not found value for the key: " + environmentVariable.Key + " and workspace: " + workspace)
 		}
+	}
+
+	if environmentVariable.Source == "" {
+		return value, nil
 	}
 
 	if environmentVariable.Source == "value" {
@@ -99,6 +104,23 @@ func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *mo
 	outputEnvMap[pathval] = content
 }
 
+func WriteContentDocLine(contents [][]string, environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, workspaces []string, pathval string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) [][]string {
+	content := []string{}
+	content = append(content, environmentVariable.Key)
+	content = append(content, environmentVariable.Name)
+	content = append(content, environmentVariable.Description)
+	content = append(content, pathval)
+	for _, workspace := range workspaces {
+		value, errorReadValue := GetValue(environmentVariable, workspace, workspace, userFileYaml, secretsFileYaml)
+		if errorReadValue != nil {
+			log.Fatalln(errorReadValue)
+		}
+		content = append(content, value)
+	}
+	contents = append(contents, content)
+	return contents
+}
+
 func WriteFile(pathval string, outputBytes []byte, suffix string) error {
 	envFile := ".env"
 	if suffix != "" {
@@ -106,6 +128,17 @@ func WriteFile(pathval string, outputBytes []byte, suffix string) error {
 	}
 	finalPath := path.Join(pathval, envFile)
 	return os.WriteFile(finalPath, outputBytes, 0644)
+}
+
+func DryWriteFile(pathval string, outputBytes []byte, suffix string) {
+	envFile := ".env"
+	if suffix != "" {
+		envFile += "." + suffix
+	}
+	finalPath := path.Join(pathval, envFile)
+	var myString = string(outputBytes[:])
+	fmt.Println(finalPath)
+	fmt.Println(myString)
 }
 
 func GCMEncrypter(keyString string, textString string, nonceHex string) (string, string) {

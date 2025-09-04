@@ -4,9 +4,7 @@ Copyright © 2024 Alan Lins <alanblins@gmail.com>
 package cmd
 
 import (
-	"io/fs"
 	"log"
-	"os"
 
 	"github.com/alanblins/monodotenv/models"
 	"github.com/alanblins/monodotenv/utils"
@@ -16,33 +14,12 @@ import (
 var ForceFlag bool
 var SuffixFlag string
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
-var DefaultConfigFile = "monodotenv.yaml"
-var DefaultUserFile = ".monodotenv.user.yaml"
-var DefaultSecretsFile = ".monodotenv.secrets.yaml"
-
-type RealMyOs struct {
-}
-
-func (myOs *RealMyOs) Stat(path string) (fs.FileInfo, error) {
-	return os.Stat(path)
-}
-
-func (myOs *RealMyOs) IsNotExist(error error) bool {
-	return os.IsNotExist(error)
-}
-
 // useCmd represents the use command
 var useCmd = &cobra.Command{
 	Use:   "use [workspace]",
 	Args:  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
-	Short: "Create .env files for an specific workspace",
-	Long: `Add the workspace into environment variables on multenv.yaml. Ex:
+	Short: "Create .env files to multiple folders for an specific workspace",
+	Long: `Add the workspace into environment variables on monodotenv.yaml. Ex:
 
 		environment_variables:
 		- name: Server URL
@@ -79,8 +56,10 @@ var useCmd = &cobra.Command{
 		nonExistingPaths := map[string]bool{}
 		envsExisting := map[string]bool{}
 		for _, element := range configYaml.EnvironmentVariables {
-			for _, path := range element.Paths {
-				envPath := path + "/.env"
+
+			if element.Paths == nil {
+				var path = "./"
+				envPath := "./.env"
 
 				exist, err := utils.IsFileExist(path, &RealMyOs{})
 				if !exist || err != nil {
@@ -91,6 +70,20 @@ var useCmd = &cobra.Command{
 					envsExisting[envPath] = true
 				}
 				utils.WriteContent(element, &configYaml, workspace, outputEnvMap, path, userFile, secretsFile)
+			} else {
+				for _, path := range element.Paths {
+					envPath := path + "/.env"
+
+					exist, err := utils.IsFileExist(path, &RealMyOs{})
+					if !exist || err != nil {
+						nonExistingPaths[path] = true
+					}
+					exist, err = utils.IsFileExist(envPath, &RealMyOs{})
+					if exist && err == nil {
+						envsExisting[envPath] = true
+					}
+					utils.WriteContent(element, &configYaml, workspace, outputEnvMap, path, userFile, secretsFile)
+				}
 			}
 		}
 

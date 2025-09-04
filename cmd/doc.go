@@ -5,72 +5,110 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"strings"
+
+	"github.com/alanblins/monodotenv/models"
+	"github.com/alanblins/monodotenv/utils"
 
 	"github.com/spf13/cobra"
 )
 
 // docCmd represents the doc command
 var docCmd = &cobra.Command{
-	Use:   "doc",
+	Use:   "doc [workspace]",
 	Short: "Create markdown doc for environment variables",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("doc called")
-		header := []string{"Key", "Name", "Description"}
-		header = append(header, "Stage")
-		header = append(header, "Local")
+		var configYaml models.ConfigYaml
+		var userFile map[string]string
+		var secretsFile models.SecretsYaml
 
-		content := [][]string{}
-		content1 := []string{"someke", "some key", "key sample bla bal", "stagevalue", "localvalue"}
+		header := []string{"Key", "Name", "Description", "Path"}
 
-		content = append(content, content1)
+		err := utils.ReadYaml(DefaultConfigFile, &configYaml)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+		utils.ReadYaml(DefaultUserFile, &userFile)
+		utils.ReadYaml(DefaultSecretsFile, &secretsFile)
+
+		mapWorskpaces := make(map[string]string)
+
+		workspace := ""
+		if len(args) > 0 {
+			workspace = args[0]
+		}
+		if workspace == "" {
+			for _, ev := range configYaml.EnvironmentVariables {
+				for keyWorkspace := range ev.Workspaces {
+					mapWorskpaces[keyWorkspace] = keyWorkspace
+				}
+			}
+		} else {
+			mapWorskpaces[workspace] = workspace
+		}
+
+		workspaces := []string{}
+
+		for keyWorkspace := range mapWorskpaces {
+			header = append(header, keyWorkspace)
+			workspaces = append(workspaces, keyWorkspace)
+		}
+
+		contents := [][]string{}
+
+		for _, element := range configYaml.EnvironmentVariables {
+			paths := []string{"./"}
+			if element.Paths != nil {
+				paths = element.Paths
+			}
+			for _, path := range paths {
+				contents = utils.WriteContentDocLine(contents, element, &configYaml, workspaces, path, userFile, secretsFile)
+			}
+		}
 
 		columnWidth := []int{}
 
-		for _, valueArr := range content {
+		for _, value := range header {
+			columnWidth = append(columnWidth, len(value))
+		}
+
+		for _, valueArr := range contents {
 			for index, value := range valueArr {
-				columnWidth = append(columnWidth, 0)
-				if columnWidth[index] == 0 || len(value) > columnWidth[index] {
-					columnWidth[index] = len(value)
-				}
+				columnWidth[index] = max(len(value), columnWidth[index])
 			}
 		}
 
-		for index, value := range header {
-			if columnWidth[index] == 0 || len(value) > columnWidth[index] {
-				columnWidth[index] = len(value)
-			}
-		}
-
-		headerMark := "|"
-		for index, value := range header {
-			repeat := columnWidth[index] - len(value)
-			headerMark = headerMark + " " + value + strings.Repeat(" ", repeat) + " |"
-		}
-		headerDashMark := "|"
-		for _, value := range columnWidth {
-			headerDashMark = headerDashMark + strings.Repeat("-", value+1) + " |"
-		}
+		headerMark := renderTextLine(header, columnWidth)
+		headerDashMark := renderDashes(columnWidth)
 
 		fmt.Println(headerMark)
 		fmt.Println(headerDashMark)
 
-		for _, valueArr := range content {
-			contentMark := "|"
-			for index, value := range valueArr {
-				repeat := columnWidth[index] - len(value)
-				contentMark = contentMark + " " + value + strings.Repeat(" ", repeat) + " |"
-			}
+		for _, valueArr := range contents {
+			contentMark := renderTextLine(valueArr, columnWidth)
 			fmt.Println(contentMark)
 		}
 
 	},
+}
+
+func renderTextLine(contents []string, columnWidth []int) string {
+	content := "|"
+	for index, value := range contents {
+		repeat := columnWidth[index] - len(value)
+		content = content + " " + value + strings.Repeat(" ", repeat) + " |"
+	}
+	return content
+}
+
+func renderDashes(columnWidth []int) string {
+	headerDashMark := "|"
+	for _, value := range columnWidth {
+		headerDashMark = headerDashMark + strings.Repeat("-", value+1) + " |"
+	}
+	return headerDashMark
 }
 
 func init() {

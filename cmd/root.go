@@ -1,20 +1,18 @@
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
+	"io/fs"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "multenv",
+	Use:   "monodotenv",
 	Short: "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
@@ -27,6 +25,27 @@ to quickly create a Cobra application.`,
 	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
+var DefaultConfigFile = "monodotenv.yaml"
+var DefaultUserFile = ".monodotenv.user.yaml"
+var DefaultSecretsFile = ".monodotenv.secrets.yaml"
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+type RealMyOs struct {
+}
+
+func (myOs *RealMyOs) Stat(path string) (fs.FileInfo, error) {
+	return os.Stat(path)
+}
+
+func (myOs *RealMyOs) IsNotExist(error error) bool {
+	return os.IsNotExist(error)
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -34,6 +53,13 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+func max(a int, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func init() {
@@ -47,5 +73,3 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
-
-
