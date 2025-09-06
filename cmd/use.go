@@ -16,17 +16,17 @@ var SuffixFlag string
 
 // useCmd represents the use command
 var useCmd = &cobra.Command{
-	Use:   "use [workspace]",
+	Use:   "use [environment]",
 	Args:  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
-	Short: "Create .env files to multiple folders for an specific workspace",
-	Long: `Add the workspace into environment variables on monodotenv.yaml. Ex:
+	Short: "Create .env files to multiple folders for an specific environment",
+	Long: `Add the environment and environment variables into monodotenv.yaml. Ex:
 
 		environment_variables:
 		- name: Server URL
 		description: Url of the web server
 		key: SERVER_URL
 		source: value
-		workspaces:
+		environments:
 			stage: https://stage.myserver.com
 			local: http://localhost:1000
 		paths:
@@ -50,7 +50,7 @@ var useCmd = &cobra.Command{
 		utils.ReadYaml(DefaultUserFile, &userFile)
 		utils.ReadYaml(DefaultSecretsFile, &secretsFile)
 
-		workspace := args[0]
+		environment := args[0]
 		outputEnvMap := make(map[string]string)
 
 		nonExistingPaths := map[string]bool{}
@@ -69,7 +69,7 @@ var useCmd = &cobra.Command{
 				if exist && err == nil {
 					envsExisting[envPath] = true
 				}
-				utils.WriteContent(element, &configYaml, workspace, outputEnvMap, path, userFile, secretsFile)
+				utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile)
 			} else {
 				for _, path := range element.Paths {
 					envPath := path + "/.env"
@@ -82,7 +82,7 @@ var useCmd = &cobra.Command{
 					if exist && err == nil {
 						envsExisting[envPath] = true
 					}
-					utils.WriteContent(element, &configYaml, workspace, outputEnvMap, path, userFile, secretsFile)
+					utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile)
 				}
 			}
 		}
@@ -99,7 +99,7 @@ var useCmd = &cobra.Command{
 			for path := range envsExisting {
 				log.Println(path)
 			}
-			log.Fatalln("Delete them or you for force overwrite with option -f: mde use <workspace> -f")
+			log.Fatalln("Delete them or you for force overwrite with option -f: mde use <environment> -f")
 		}
 
 		if ForceFlag || len(envsExisting) == 0 {

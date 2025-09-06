@@ -16,7 +16,7 @@ import (
 
 // docCmd represents the doc command
 var docCmd = &cobra.Command{
-	Use:   "doc [workspace]",
+	Use:   "doc [environment]",
 	Short: "Create markdown doc for environment variables",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -33,27 +33,27 @@ var docCmd = &cobra.Command{
 		utils.ReadYaml(DefaultUserFile, &userFile)
 		utils.ReadYaml(DefaultSecretsFile, &secretsFile)
 
-		mapWorskpaces := make(map[string]string)
+		mapEnvironments := make(map[string]string)
 
-		workspace := ""
+		environment := ""
 		if len(args) > 0 {
-			workspace = args[0]
+			environment = args[0]
 		}
-		if workspace == "" {
+		if environment == "" {
 			for _, ev := range configYaml.EnvironmentVariables {
-				for keyWorkspace := range ev.Workspaces {
-					mapWorskpaces[keyWorkspace] = keyWorkspace
+				for keyEnvironment := range ev.Environments {
+					mapEnvironments[keyEnvironment] = keyEnvironment
 				}
 			}
 		} else {
-			mapWorskpaces[workspace] = workspace
+			mapEnvironments[environment] = environment
 		}
 
-		workspaces := []string{}
+		environments := []string{}
 
-		for keyWorkspace := range mapWorskpaces {
-			header = append(header, keyWorkspace)
-			workspaces = append(workspaces, keyWorkspace)
+		for keyEnvironment := range mapEnvironments {
+			header = append(header, keyEnvironment)
+			environments = append(environments, keyEnvironment)
 		}
 
 		contents := [][]string{}
@@ -64,7 +64,7 @@ var docCmd = &cobra.Command{
 				paths = element.Paths
 			}
 			for _, path := range paths {
-				contents = utils.WriteContentDocLine(contents, element, &configYaml, workspaces, path, userFile, secretsFile)
+				contents = utils.WriteContentDocLine(contents, element, &configYaml, environments, path, userFile, secretsFile)
 			}
 		}
 

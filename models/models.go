@@ -3,12 +3,12 @@ package models
 import "io/fs"
 
 type EnvironmentVariable struct {
-	Key         string            `yaml:"key"`
-	Source      string            `yaml:"source"`
-	Name        string            `yaml:"name"`
-	Description string            `yaml:"description"`
-	Workspaces  map[string]string `yaml:"workspaces"`
-	Paths       []string          `yaml:"paths"`
+	Key          string            `yaml:"key"`
+	Source       string            `yaml:"source"`
+	Name         string            `yaml:"name"`
+	Description  string            `yaml:"description"`
+	Environments map[string]string `yaml:"environments"`
+	Paths        []string          `yaml:"paths"`
 }
 
 type ConfigYaml struct {
