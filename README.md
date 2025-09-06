@@ -11,18 +11,18 @@ Generate multiple .env files based on single source configuration file in YAML
 - Run it `./monodotenv use local`
 
 # How it works
-`monodotenv` will read the file `monodotenv.yaml` and will create .env for different workspace like stage, local, testing, etc.
+`monodotenv` will read the file `monodotenv.yaml` and will create .env for different environment like stage, local, testing, etc.
 ## Basic example
 Create the `monodotenv.yaml` file below.
 
 ```yml
 environment_variables:
 - key: BASE_URL
-  workspaces:
+  environments:
     stage: https://stage.com.myserver
     local: http://localhost:1000
 - key: DATABASE_URL
-  workspaces:
+  environments:
     stage: https://stage.database.com
     local: http://localhost:2000
 ```
@@ -34,7 +34,7 @@ Execute the command below:
 ```sh
 ./monodotenv use local
 ```
-It will create the .env file with values from workspace `local` below:
+It will create the .env file with values from environment `local` below:
 ```
 BASE_URL=http://localhost:1000
 DATABASE_URL=http://localhost:2000
@@ -44,7 +44,7 @@ Execute the command below:
 ```sh
 ./monodotenv use stage
 ```
-It will create the .env file with values from workspace `stage` below:
+It will create the .env file with values from environment `stage` below:
 ```
 BASE_URL=https://stage.com.myserver
 DATABASE_URL=https://stage.database.com
@@ -55,20 +55,20 @@ This is useful on monorepo project where we need .env files on multiple places. 
 ```yaml
 environment_variables:
 - key: BASE_URL
-  workspaces:
+  environments:
     stage: https://stage.com.myserver
     local: http://localhost:1000
   paths:
   - packages/frontend
 - key: AUTH_URL
-  workspaces:
+  environments:
     stage: https://auth.stage.com
     local: http://localhost:3000/auth
   paths:
   - packages/frontend
   - packages/backend
 - key: DATABASE_URL
-  workspaces:
+  environments:
     stage: https://stage.database.com
     local: http://localhost:2000
   paths:
@@ -98,33 +98,33 @@ AUTH_URL=http://localhost:3000/auth
 # CLI
 Create .env files
 ```sh
-./monodotenv use [workspace]
+./monodotenv use [environment]
 ```
 Ovewrite existing .env files
 ```sh
-./monodotenv use [workspace]  -f
+./monodotenv use [environment]  -f
 ```
 Create .env.testing
 ```sh
-./monodotenv use [workspace] -s testing
+./monodotenv use [environment] -s testing
 ```
-List workspaces
+List environments
 ```sh
 ./monodotenv list 
 ```
-List environment variables per workspace and per folder destination
+List environment variables per environment and per folder destination
 ```sh
-./monodotenv list [workspace] 
+./monodotenv list [environment] 
 ```
 
 # monodotenv.yaml
 ```
 environment_variables: <list>
 - key: <environment variable>
-  source: <default: value, value = hard coded value from workspaces | user = value from monodotenv.user.file | aes-gcm = the value in workspace will be decrypted using secret available in .monodotenv.secrets.yaml>
-  workspaces: <key pair. at least one workspace required>
-    <workspace key1>: <workspace key2>
-    <workspace key2>: <workspace key2>
+  source: <default: value, value = hard coded value from environments | user = value from monodotenv.user.file | aes-gcm = the value in environment will be decrypted using secret available in .monodotenv.secrets.yaml>
+  environments: <key pair. at least one environment required>
+    <environment key1>: <environment key2>
+    <environment key2>: <environment key2>
   paths: <default: current folder, list>
   - <folder destination 1>
   - <folder destination 2>
@@ -132,6 +132,6 @@ environment_variables: <list>
 
 # features
 - Multiple target destinations for .env files. Useful for monorepo projects where needs to repeat the same environment variables on multiple .env files.
-- Reuse environment variables with extends workspaces.
+- Reuse environment variables with extends environments.
 - GCM encrypted values and decrypted while creating .env files
 - Generate environment variables per user. Useful for environment variables that is different per user and needs to repeat on multiple .env files

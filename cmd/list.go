@@ -13,9 +13,9 @@ import (
 
 // listCmd represents the use command
 var listCmd = &cobra.Command{
-	Use:   "list [workspace]",
-	Short: "List workspaces available on monodotenv.yaml",
-	Long: `List workspaces available on monodotenv.yaml.
+	Use:   "list [environment]",
+	Short: "List environments available on monodotenv.yaml",
+	Long: `List environments available on monodotenv.yaml.
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var configYaml models.ConfigYaml
@@ -29,30 +29,30 @@ var listCmd = &cobra.Command{
 		utils.ReadYaml(DefaultUserFile, &userFile)
 		utils.ReadYaml(DefaultSecretsFile, &secretsFile)
 
-		mapWorskpaces := make(map[string]string)
+		mapEnvironments := make(map[string]string)
 		if len(args) == 0 {
 			for _, ev := range configYaml.EnvironmentVariables {
-				for keyWorkspace := range ev.Workspaces {
-					mapWorskpaces[keyWorkspace] = keyWorkspace
+				for keyEnvironment := range ev.Environments {
+					mapEnvironments[keyEnvironment] = keyEnvironment
 				}
 			}
 
-			for keyWorkspace := range mapWorskpaces {
-				println(keyWorkspace)
+			for keyEnvironment := range mapEnvironments {
+				println(keyEnvironment)
 			}
 			return
 		}
-		workspace := args[0]
+		environment := args[0]
 		outputEnvMap := make(map[string]string)
 
 		nonExistingPaths := map[string]bool{}
 		for _, element := range configYaml.EnvironmentVariables {
 			if element.Paths == nil {
 				var path = "./"
-				utils.WriteContent(element, &configYaml, workspace, outputEnvMap, path, userFile, secretsFile)
+				utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile)
 			} else {
 				for _, path := range element.Paths {
-					utils.WriteContent(element, &configYaml, workspace, outputEnvMap, path, userFile, secretsFile)
+					utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile)
 				}
 			}
 		}

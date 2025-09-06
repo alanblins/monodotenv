@@ -28,23 +28,23 @@ func IsFileExist(pathval string, myOs models.OsI) (bool, error) {
 
 }
 
-func ValidateEnvironmanetVariable(environmentVariable models.EnvironmentVariable, workspace string, extendWorkspace string, userFile map[string]string) (bool, error) {
+func ValidateEnvironmanetVariable(environmentVariable models.EnvironmentVariable, environment string, extendEnvironment string, userFile map[string]string) (bool, error) {
 
 	return true, nil
 }
 
-func GetValue(environmentVariable models.EnvironmentVariable, extendWorkspace string, workspace string, userfile map[string]string, secretsFile models.SecretsYaml) (string, error) {
-	workspaceFinal := workspace
-	value, workspaceExist := environmentVariable.Workspaces[workspace]
-	if !workspaceExist {
-		if extendWorkspace != "" {
-			value, workspaceExist = environmentVariable.Workspaces[extendWorkspace]
-			if !workspaceExist {
-				return "", errors.New("not found value for the key: " + environmentVariable.Key + " and workspace: " + workspace)
+func GetValue(environmentVariable models.EnvironmentVariable, extendEnvironment string, environment string, userfile map[string]string, secretsFile models.SecretsYaml) (string, error) {
+	environmentFinal := environment
+	value, environmentExist := environmentVariable.Environments[environment]
+	if !environmentExist {
+		if extendEnvironment != "" {
+			value, environmentExist = environmentVariable.Environments[extendEnvironment]
+			if !environmentExist {
+				return "", errors.New("not found value for the key: " + environmentVariable.Key + " and environment: " + environment)
 			}
-			workspaceFinal = extendWorkspace
+			environmentFinal = extendEnvironment
 		} else {
-			return "", errors.New("not found value for the key: " + environmentVariable.Key + " and workspace: " + workspace)
+			return "", errors.New("not found value for the key: " + environmentVariable.Key + " and environment: " + environment)
 		}
 	}
 
@@ -71,8 +71,8 @@ func GetValue(environmentVariable models.EnvironmentVariable, extendWorkspace st
 		if secretsFile.Secrets == nil {
 			return "", errors.New("no .monodotenv.secrets.yaml file found")
 		}
-		keyHex := secretsFile.Secrets[workspaceFinal][environmentVariable.Key][0]
-		nounceHex := secretsFile.Secrets[workspaceFinal][environmentVariable.Key][1]
+		keyHex := secretsFile.Secrets[environmentFinal][environmentVariable.Key][0]
+		nounceHex := secretsFile.Secrets[environmentFinal][environmentVariable.Key][1]
 		value = GCMDecrypter(keyHex, value, nounceHex)
 		if value == "" {
 			return "", errors.New(value + "not found in .monodotenv.user.yaml file.")
@@ -94,9 +94,9 @@ func ReadYaml[T models.ConfigYaml | map[string]string | models.SecretsYaml](file
 	return nil
 }
 
-func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, workspace string, outputEnvMap map[string]string, pathval string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) {
-	extendWorkspace := configYaml.Extends[workspace]
-	value, errorReadValue := GetValue(environmentVariable, extendWorkspace, workspace, userFileYaml, secretsFileYaml)
+func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, environment string, outputEnvMap map[string]string, pathval string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) {
+	extendEnvironment := configYaml.Extends[environment]
+	value, errorReadValue := GetValue(environmentVariable, extendEnvironment, environment, userFileYaml, secretsFileYaml)
 	if errorReadValue != nil {
 		log.Fatalln(errorReadValue)
 	}
@@ -104,14 +104,14 @@ func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *mo
 	outputEnvMap[pathval] = content
 }
 
-func WriteContentDocLine(contents [][]string, environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, workspaces []string, pathval string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) [][]string {
+func WriteContentDocLine(contents [][]string, environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, environments []string, pathval string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) [][]string {
 	content := []string{}
 	content = append(content, environmentVariable.Key)
 	content = append(content, environmentVariable.Name)
 	content = append(content, environmentVariable.Description)
 	content = append(content, pathval)
-	for _, workspace := range workspaces {
-		value, errorReadValue := GetValue(environmentVariable, workspace, workspace, userFileYaml, secretsFileYaml)
+	for _, environment := range environments {
+		value, errorReadValue := GetValue(environmentVariable, environment, environment, userFileYaml, secretsFileYaml)
 		if errorReadValue != nil {
 			log.Fatalln(errorReadValue)
 		}
