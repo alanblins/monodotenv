@@ -69,7 +69,7 @@ var useCmd = &cobra.Command{
 				if exist && err == nil {
 					envsExisting[envPath] = true
 				}
-				utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile)
+				utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile, false)
 			} else {
 				for _, path := range element.Paths {
 					envPath := path + "/.env"
@@ -82,7 +82,7 @@ var useCmd = &cobra.Command{
 					if exist && err == nil {
 						envsExisting[envPath] = true
 					}
-					utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile)
+					utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile, false)
 				}
 			}
 		}

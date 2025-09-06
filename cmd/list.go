@@ -49,10 +49,10 @@ var listCmd = &cobra.Command{
 		for _, element := range configYaml.EnvironmentVariables {
 			if element.Paths == nil {
 				var path = "./"
-				utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile)
+				utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile, true)
 			} else {
 				for _, path := range element.Paths {
-					utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile)
+					utils.WriteContent(element, &configYaml, environment, outputEnvMap, path, userFile, secretsFile, true)
 				}
 			}
 		}

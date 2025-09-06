@@ -31,7 +31,7 @@ func TestGetValue(t *testing.T) {
 		Paths:        paths,
 		Environments: environments,
 	}
-	value, _ := GetValue(ev, "", "local", userfile, secretsFile)
+	value, _ := GetValue(ev, "", "local", userfile, secretsFile, false)
 	if value != "value local" {
 		t.Fatal("value didn't match")
 	}
@@ -50,7 +50,7 @@ func TestGetValueNotFound(t *testing.T) {
 		Paths:        paths,
 		Environments: environments,
 	}
-	_, err := GetValue(ev, "", "stage", userfile, secretsFile)
+	_, err := GetValue(ev, "", "stage", userfile, secretsFile, false)
 	if err.Error() != "not found value for the key: MYKEY and environment: stage" {
 		t.Fatal("didn't throw error")
 	}
@@ -69,7 +69,7 @@ func TestGetValueExtend(t *testing.T) {
 		Paths:        paths,
 		Environments: environments,
 	}
-	result, _ := GetValue(ev, "local", "stage", userfile, secretsFile)
+	result, _ := GetValue(ev, "local", "stage", userfile, secretsFile, false)
 	if result != "value local" {
 		t.Fatal("value didn't match")
 	}
@@ -88,7 +88,7 @@ func TestGetValueUserFile(t *testing.T) {
 		Paths:        paths,
 		Environments: environments,
 	}
-	value, _ := GetValue(ev, "", "local", userfile, secretsFile)
+	value, _ := GetValue(ev, "", "local", userfile, secretsFile, false)
 
 	if value != "my user value" {
 		t.Fatal("value didn't match")
@@ -113,7 +113,7 @@ func TestGetValueAESGCM(t *testing.T) {
 		Paths:        paths,
 		Environments: environments,
 	}
-	value, _ := GetValue(ev, "", "local", userfile, secretsFile)
+	value, _ := GetValue(ev, "", "local", userfile, secretsFile, false)
 
 	if value != "mytext" {
 		t.Fatal("value didn't match")

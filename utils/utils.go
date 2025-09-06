@@ -33,7 +33,7 @@ func ValidateEnvironmanetVariable(environmentVariable models.EnvironmentVariable
 	return true, nil
 }
 
-func GetValue(environmentVariable models.EnvironmentVariable, extendEnvironment string, environment string, userfile map[string]string, secretsFile models.SecretsYaml) (string, error) {
+func GetValue(environmentVariable models.EnvironmentVariable, extendEnvironment string, environment string, userfile map[string]string, secretsFile models.SecretsYaml, redact bool) (string, error) {
 	environmentFinal := environment
 	value, environmentExist := environmentVariable.Environments[environment]
 	if !environmentExist {
@@ -68,6 +68,9 @@ func GetValue(environmentVariable models.EnvironmentVariable, extendEnvironment 
 	}
 
 	if environmentVariable.Source == "aes-gcm" {
+		if redact {
+			return "****", nil
+		}
 		if secretsFile.Secrets == nil {
 			return "", errors.New("no .monodotenv.secrets.yaml file found")
 		}
@@ -94,9 +97,9 @@ func ReadYaml[T models.ConfigYaml | map[string]string | models.SecretsYaml](file
 	return nil
 }
 
-func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, environment string, outputEnvMap map[string]string, pathval string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml) {
+func WriteContent(environmentVariable models.EnvironmentVariable, configYaml *models.ConfigYaml, environment string, outputEnvMap map[string]string, pathval string, userFileYaml map[string]string, secretsFileYaml models.SecretsYaml, redact bool) {
 	extendEnvironment := configYaml.Extends[environment]
-	value, errorReadValue := GetValue(environmentVariable, extendEnvironment, environment, userFileYaml, secretsFileYaml)
+	value, errorReadValue := GetValue(environmentVariable, extendEnvironment, environment, userFileYaml, secretsFileYaml, redact)
 	if errorReadValue != nil {
 		log.Fatalln(errorReadValue)
 	}
@@ -111,7 +114,7 @@ func WriteContentDocLine(contents [][]string, environmentVariable models.Environ
 	content = append(content, environmentVariable.Description)
 	content = append(content, pathval)
 	for _, environment := range environments {
-		value, errorReadValue := GetValue(environmentVariable, environment, environment, userFileYaml, secretsFileYaml)
+		value, errorReadValue := GetValue(environmentVariable, environment, environment, userFileYaml, secretsFileYaml, true)
 		if errorReadValue != nil {
 			log.Fatalln(errorReadValue)
 		}
